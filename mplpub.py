@@ -33,7 +33,7 @@ def tight_layout(ax, pad=0.1):
     >>> ax.plot([1, 2, 3], [1, 4, 9])
     >>> ax.set_ylabel('y axis')
     >>> fig.set_size_inches(4, 1)
-    >>> mplpub.center_tight_layout(ax)
+    >>> mplpub.tight_layout(ax)
     >>> fig.savefig('plot.png')
     """
     fig = ax.get_figure()
