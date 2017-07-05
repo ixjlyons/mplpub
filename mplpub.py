@@ -1,3 +1,29 @@
+from matplotlib.tight_layout import (get_renderer, get_tight_layout_figure,
+                            get_subplotspec_list)
+                                   
+def horizontal_center(fig, pad=0.1):
+    """
+    import mplpub
+    import matplotlib.pyplot as plt
+    
+    plt.ion()
+    
+    fig = plt.figure()
+    plt.plot([1, 2, 3], [1, 4, 9])
+    plt.ylabel('y axis')
+    fig.set_size_inches(4, 1)
+    mplpub.horizontal_center(fig)
+    fig.savefig('plot.png')
+    
+    """
+    adjust_kwargs = get_tight_layout_figure(fig, fig.axes,
+        get_subplotspec_list(fig.axes), get_renderer(fig), pad=pad)
+    
+    adjust_kwargs['right'] = 1 - adjust_kwargs['left']
+    
+    fig.subplots_adjust(**adjust_kwargs)
+    
+
 def tight_layout(ax, pad=0.1):
     """Apply matplotlib's tight_layout but with plot contents centered.
 
