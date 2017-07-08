@@ -6,6 +6,8 @@ figure and getting it ready for showtime in a document.
 
 Currently implemented functions:
 
-- `tight_layout`: Uses matplotlib's `tight_layout`, but centers the "plot
-  contents" within the figure to counteract y axis labels and y axis tick
-  labels pushing the plot axes too far to the right.
+- `vertical_aspect`: Adjust figure height and vertical spacing so a sub-plot 
+  plotting area has a specified aspect ratio and the overall figure has 
+  top/bottom margins from tight_layout.
+- `horizontal_center`: Apply matplotlib's tight_layout to the left margin while
+   keeping the plot contents centered.

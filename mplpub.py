@@ -11,19 +11,25 @@ def vertical_aspect(fig, aspect, ax_idx=0, pad=1.08):
     Parameters
     ----------
     fig : Figure
-        The matplotlib figure object, the content of which will be centered
+        The matplotlib figure object to be updated
     aspect : float
         The aspect ratio (W:H) desired for the subplot of ax_idx
     ax_idx : int
-        The index (of fig.axes) for the axes to set the desired ratio
+        The index (of fig.axes) for the axes to have the desired aspect ratio
     pad : float
         Padding between the edge of the figure and the axis labels, as a
         multiple of font size.
-        
+    
+    Returns
+    -------
+    i : int or float
+        The number of iterations to converge (be within one pixel by DPI) of the
+        desired aspect ratio or if it does not converge, the current aspect 
+        ratio of the fig.axes[ax_idx]
+    
     Examples
     --------
-    Plot some data and save it as a PNG. The center of the x axis will be
-    centered within the figure.
+    Plot some data and save it as a PNG. The height
     
     >>> import mplpub
     >>> import matplotlib.pyplot as plt
@@ -34,7 +40,7 @@ def vertical_aspect(fig, aspect, ax_idx=0, pad=1.08):
     >>> mplpub.vertical_aspect(fig, mplpub.golden_ratio)
     >>> fig.savefig('plot.png')
     
-    Specify which axes to set the aspect ratio of
+    Plays well with subplots
     
     >>> import mplpub
     >>> import matplotlib.pyplot as plt
@@ -46,14 +52,11 @@ def vertical_aspect(fig, aspect, ax_idx=0, pad=1.08):
     >>>     plt.ylabel('y axis')
     >>> fig.set_size_inches(8, 8)
     >>> print("center iter",mplpub.horizontal_center(fig))
+    
+    The aspect ratio of any subplot can be set
+    
     >>> print("vert iter",mplpub.vertical_aspect(fig, 1, 1))
-
-    >>> fig = plt.figure()
-    >>> plt.plot([1, 2, 3], [1, 4, 9])
-    >>> plt.ylabel('y axis')
-    >>> fig.set_size_inches(4,4)
-    >>> print("center iter",mplpub.horizontal_center(fig))
-    >>> print("vert iter",mplpub.vertical_aspect(fig, 0.5))
+    >>> print("vert iter",mplpub.vertical_aspect(fig, 0, 0.5))
     
     """
     ax = fig.axes[ax_idx]
@@ -101,6 +104,12 @@ def horizontal_center(fig, pad=1.08):
     pad : float
         Padding between the edge of the figure and the axis labels, as a
         multiple of font size.
+        
+    Returns
+    -------
+    i : int or None
+        The number of iterations to converge (the computed margins don't change
+        between iterations) or None if it does not converge.
         
     Examples
     --------
