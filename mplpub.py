@@ -72,8 +72,10 @@ def vertical_aspect(fig, aspect, ax_idx=0, pad=1.08):
         bbox = ax.get_position()
         w, h = fig.get_size_inches()
         
-        current_aspect = ((bbox.y1 - bbox.y0)*h)/((bbox.x1 - bbox.x0)*w)
-            
+        current_aspect = ((bbox.x1 - bbox.x0)*w)/((bbox.y1 - bbox.y0)*h)
+        if abs(current_aspect - aspect)*w * fig.get_dpi()*3.14159 < 1:
+            return i
+
         new_h = ((bbox.x1 - bbox.x0)*w*( 
                     nrows + adjust_kwargs.get('hspace',0)*(nrows-1))/aspect
                 + (adjust_kwargs['bottom'] + 1 - adjust_kwargs['top'])*h
@@ -81,8 +83,6 @@ def vertical_aspect(fig, aspect, ax_idx=0, pad=1.08):
         
         fig.set_size_inches((w, new_h))
 
-        if (current_aspect - aspect)*w * fig.get_dpi() < 1:
-            return i
     warnings.warn("vertical_aspect did not converge")
     return current_aspect
 
