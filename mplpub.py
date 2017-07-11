@@ -1,9 +1,14 @@
+import matplotlib, warnings
 from matplotlib.tight_layout import (get_renderer, get_tight_layout_figure,
                             get_subplotspec_list)
-import warnings
+
+from matplotlib.font_manager import FontProperties
+rcParams = matplotlib.rcParams
 golden_ratio = 1.61803398875
 
-def vertical_aspect(fig, aspect, ax_idx=0, pad=1.08):
+from matplotlib.transforms import TransformedBbox
+
+def vertical_aspect(fig, aspect, ax_idx=0, pad=1.08, suptitle_text_idx=0):
     """Adjust figure height and vertical spacing so a sub-plot plotting area has
     a specified aspect ratio and the overall figure has top/bottom margins from
     tight_layout.
@@ -19,6 +24,8 @@ def vertical_aspect(fig, aspect, ax_idx=0, pad=1.08):
     pad : float
         Padding between the edge of the figure and the axis labels, as a
         multiple of font size.
+    suptitle_text_idx : int
+        The index (of fig.texts) of the fig.suptitle to try to account for
     
     Returns
     -------
@@ -51,6 +58,7 @@ def vertical_aspect(fig, aspect, ax_idx=0, pad=1.08):
     >>>     plt.plot([1, 2, 3], [1, 4, 9])
     >>>     plt.ylabel('y axis')
     >>> fig.set_size_inches(8, 8)
+    >>> fig.suptitle("super title")
     >>> print("center iter",mplpub.horizontal_center(fig))
     
     The aspect ratio of any subplot can be set
@@ -64,25 +72,39 @@ def vertical_aspect(fig, aspect, ax_idx=0, pad=1.08):
     
     nrows = get_subplotspec_list(fig.axes)[ax_idx].get_geometry()[0]
     
+    suptitle = None
+    try:
+        suptitle = fig.texts[suptitle_text_idx]
+    except:
+        pass
+    
+    suptitle_height = 0
+    suptitle_pad = 0
+    
     for i in range(11):
         adjust_kwargs = get_tight_layout_figure(fig, fig.axes,
             get_subplotspec_list(fig.axes), get_renderer(fig), pad=pad)
-        
-        fig.subplots_adjust(top=adjust_kwargs['top'], 
+            
+        w, h = fig.get_size_inches()
+
+        if suptitle is not None:
+            suptitle_height = TransformedBbox(suptitle.get_window_extent(get_renderer(fig)),fig.transFigure.inverted()).height
+            suptitle_pad = pad * FontProperties(
+                   size=rcParams["font.size"]).get_size_in_points() / 144
+            
+        fig.subplots_adjust(top=adjust_kwargs['top']-suptitle_height-suptitle_pad/h, 
             bottom=adjust_kwargs['bottom'],
             hspace=adjust_kwargs.get('hspace',None))
             
         bbox = ax.get_position()
-        w, h = fig.get_size_inches()
         
         current_aspect = ((bbox.x1 - bbox.x0)*w)/((bbox.y1 - bbox.y0)*h)
         if abs(current_aspect - aspect)*w * fig.get_dpi()*3.14159 < 1:
             return i
-
-        new_h = ((bbox.x1 - bbox.x0)*w*( 
-                    nrows + adjust_kwargs.get('hspace',0)*(nrows-1))/aspect
-                + (adjust_kwargs['bottom'] + 1 - adjust_kwargs['top'])*h
-            )
+        
+        hspace = adjust_kwargs.get('hspace',0)
+        new_h = ( bbox.width*w*(nrows + hspace*(nrows-1) + suptitle_pad)/aspect
+                + (adjust_kwargs['bottom'] + 1 - adjust_kwargs['top'] + suptitle_height)*h)
         
         fig.set_size_inches((w, new_h))
 
