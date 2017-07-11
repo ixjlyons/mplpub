@@ -1,12 +1,11 @@
 import matplotlib, warnings
 from matplotlib.tight_layout import (get_renderer, get_tight_layout_figure,
                             get_subplotspec_list)
-
 from matplotlib.font_manager import FontProperties
+from matplotlib.transforms import TransformedBbox
+
 rcParams = matplotlib.rcParams
 golden_ratio = 1.61803398875
-
-from matplotlib.transforms import TransformedBbox
 
 def vertical_aspect(fig, aspect, ax_idx=0, pad=1.08, suptitle_text_idx=0):
     """Adjust figure height and vertical spacing so a sub-plot plotting area has
@@ -73,13 +72,14 @@ def vertical_aspect(fig, aspect, ax_idx=0, pad=1.08, suptitle_text_idx=0):
     nrows = get_subplotspec_list(fig.axes)[ax_idx].get_geometry()[0]
     
     suptitle = None
+    suptitle_height = 0
+    suptitle_pad_inches = 0
     try:
         suptitle = fig.texts[suptitle_text_idx]
+        suptitle_pad_inches = pad * FontProperties(
+                size=rcParams["font.size"]).get_size_in_points() / 144
     except:
         pass
-    
-    suptitle_height = 0
-    suptitle_pad = 0
     
     for i in range(11):
         adjust_kwargs = get_tight_layout_figure(fig, fig.axes,
@@ -88,13 +88,17 @@ def vertical_aspect(fig, aspect, ax_idx=0, pad=1.08, suptitle_text_idx=0):
         w, h = fig.get_size_inches()
 
         if suptitle is not None:
-            suptitle_height = TransformedBbox(suptitle.get_window_extent(get_renderer(fig)),fig.transFigure.inverted()).height
-            suptitle_pad = pad * FontProperties(
-                   size=rcParams["font.size"]).get_size_in_points() / 144
+            suptitle_height = TransformedBbox(
+                    suptitle.get_window_extent(get_renderer(fig)),
+                    fig.transFigure.inverted()
+                ).height
             
-        fig.subplots_adjust(top=adjust_kwargs['top']-suptitle_height-suptitle_pad/h, 
+            
+        fig.subplots_adjust(
+            top=adjust_kwargs['top']-suptitle_height-suptitle_pad_inches/h, 
             bottom=adjust_kwargs['bottom'],
-            hspace=adjust_kwargs.get('hspace',None))
+            hspace=adjust_kwargs.get('hspace',None)
+        )
             
         bbox = ax.get_position()
         
@@ -103,8 +107,10 @@ def vertical_aspect(fig, aspect, ax_idx=0, pad=1.08, suptitle_text_idx=0):
             return i
         
         hspace = adjust_kwargs.get('hspace',0)
-        new_h = ( bbox.width*w*(nrows + hspace*(nrows-1) + suptitle_pad)/aspect
-                + (adjust_kwargs['bottom'] + 1 - adjust_kwargs['top'] + suptitle_height)*h)
+        new_h = ( bbox.width*w*(nrows + hspace*(nrows-1))/aspect
+                + (adjust_kwargs['bottom'] + 1 - adjust_kwargs['top'] 
+                    + suptitle_height)*h
+                + suptitle_pad_inches)
         
         fig.set_size_inches((w, new_h))
 
