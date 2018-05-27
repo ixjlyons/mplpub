@@ -7,6 +7,70 @@ from matplotlib.transforms import TransformedBbox
 rcParams = matplotlib.rcParams
 golden_ratio = 1.61803398875
 
+def wrap_suptitle(fig, suptitle_words=[], pad=1.08, **kwargs):
+    """Add a wrapped suptitle so the width does not extend into the padding of
+    the figure. 
+    
+    Parameters
+    ----------
+    fig : Figure
+        The matplotlib figure object to be updated
+    suptitle_text : list of strings
+        A list of word strings that that should not be put on separate lines
+    pad : float
+        Padding between the edge of the figure and the axis labels, as a
+        multiple of font size
+    **kwargs : dict
+        Additional keyword args to be passed to suptitle
+        
+    Returns
+    -------
+    suptitle : matplotlib.text.Text
+        Passes return title from suptitle
+    
+    >>> import mplpub
+    >>> import matplotlib.pyplot as plt
+    >>> plt.ion()
+    >>> fig = plt.figure()
+    >>> for spec in ((1,2,1), (2,2,2), (2,2,4)):
+    >>>     plt.subplot(*spec)
+    >>>     plt.plot([1, 2, 3], [1, 4, 9])
+    >>>     plt.ylabel('y axis')
+    >>> fig.set_size_inches(4,4)
+    >>> t = "This is a really long string that I'd rather have wrapped so that"\
+    >>> " it doesn't go outside of the figure, but if it's long enough it will"\
+    >>> " go off the top or bottom!"
+    >>> fig.suptitle(t.split(" "))
+
+    """
+    w, h = fig.get_size_inches()
+    max_width = 1 - 2 * pad * FontProperties(
+            size=rcParams["font.size"]).get_size_in_points() / (144 * w)
+    words_in_lines = [suptitle_words]
+    iter_count = 0
+    iter_max = len(suptitle_words)
+    for iter_count in range(iter_max):
+        this_line = words_in_lines[-1]
+        words_in_this_line = len(this_line)
+        for word_idx_iter in range(words_in_this_line):
+            split_index = words_in_this_line-word_idx_iter
+            line_text = " ".join(this_line[0:split_index])
+            suptitle_line = fig.suptitle(line_text, **kwargs)
+            suptitle_line_width = TransformedBbox(
+                    suptitle_line.get_window_extent(get_renderer(fig)),
+                    fig.transFigure.inverted()
+                ).width
+            if suptitle_line_width <= max_width:
+                break
+        next_line = this_line[split_index:]
+        words_in_lines = words_in_lines[:-1] + [this_line[:split_index]]
+        if len(next_line):
+            words_in_lines += [next_line]
+        else:
+            break
+    suptitle_text = "\n".join([" ".join(line) for line in words_in_lines])
+    return fig.suptitle(suptitle_text, **kwargs)
+
 def vertical_aspect(fig, aspect, ax_idx=0, pad=1.08, suptitle_text_idx=0):
     """Adjust figure height and vertical spacing so a sub-plot plotting area has
     a specified aspect ratio and the overall figure has top/bottom margins from
@@ -22,7 +86,7 @@ def vertical_aspect(fig, aspect, ax_idx=0, pad=1.08, suptitle_text_idx=0):
         The index (of fig.axes) for the axes to have the desired aspect ratio
     pad : float
         Padding between the edge of the figure and the axis labels, as a
-        multiple of font size.
+        multiple of font size
     suptitle_text_idx : int
         The index (of fig.texts) of the fig.suptitle to try to account for
     
@@ -131,7 +195,7 @@ def horizontal_center(fig, pad=1.08):
         The matplotlib figure object, the content of which will be centered
     pad : float
         Padding between the edge of the figure and the axis labels, as a
-        multiple of font size.
+        multiple of font size
         
     Returns
     -------
