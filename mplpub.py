@@ -89,8 +89,13 @@ def vertical_aspect(fig, aspect, ax_idx=0, pad=1.08,
     pad : float
         Padding between the edge of the figure and the axis labels, as a
         multiple of font size
-    suptitle_text_idx : int
-        The index (of fig.texts) of the fig.suptitle to try to account for
+    nonoverlapping_extra_artists : iterable of artists
+        Iterable of artists that should not overlap with the subplots but 
+        should be accounted for in the layout; e.g., suptitle
+    overlapping_extra_artists : iterable of artists
+        Iterable of artists that may overlap with the subplots but should be 
+        accounted for in the layout; e.g., legends
+    
     
     Returns
     -------
@@ -187,9 +192,14 @@ def vertical_aspect(fig, aspect, ax_idx=0, pad=1.08,
 
         adjust_kwargs = get_tight_layout_figure(fig, fig.axes,
             get_subplotspec_list(fig.axes), get_renderer(fig), pad=pad,
-            rect = (0, (non_overlapping_inches['bottom'] +
-                    overlapping_bottom_adjust_inches)/h, 1, 1-(non_overlapping_inches['top'] +
-                 overlapping_top_adjust_inches)/h)
+            rect = (0, 
+                (non_overlapping_inches['bottom'] 
+                 + overlapping_bottom_adjust_inches)/h,
+                 1, 
+                 1 - (
+                    non_overlapping_inches['top'] 
+                    + overlapping_top_adjust_inches
+                 )/h)
             )
         
         tight_top_inches = (1-adjust_kwargs['top'])*old_h
