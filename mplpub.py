@@ -71,7 +71,9 @@ def wrap_suptitle(fig, suptitle_words=[], pad=1.08, **kwargs):
     suptitle_text = "\n".join([" ".join(line) for line in words_in_lines])
     return fig.suptitle(suptitle_text, **kwargs)
 
-def vertical_aspect(fig, aspect, ax_idx=0, pad=1.08, suptitle_text_idx=0):
+def vertical_aspect(fig, aspect, ax_idx=0, pad=1.08,
+                    nonoverlapping_extra_artists=[],
+                    overlapping_extra_artists=[]):
     """Adjust figure height and vertical spacing so a sub-plot plotting area has
     a specified aspect ratio and the overall figure has top/bottom margins from
     tight_layout.
@@ -131,52 +133,83 @@ def vertical_aspect(fig, aspect, ax_idx=0, pad=1.08, suptitle_text_idx=0):
     
     """
     ax = fig.axes[ax_idx]
-    new_h = 0
-    
-    nrows = get_subplotspec_list(fig.axes)[ax_idx].get_geometry()[0]
-    
-    suptitle = None
-    suptitle_height = 0
-    suptitle_pad_inches = 0
-    try:
-        suptitle = fig.texts[suptitle_text_idx]
-        suptitle_pad_inches = pad * FontProperties(
-                size=rcParams["font.size"]).get_size_in_points() / 144
-    except:
-        pass
-    
-    for i in range(11):
-        adjust_kwargs = get_tight_layout_figure(fig, fig.axes,
-            get_subplotspec_list(fig.axes), get_renderer(fig), pad=pad)
-            
-        w, h = fig.get_size_inches()
+    w, h = fig.get_size_inches()
 
-        if suptitle is not None:
-            suptitle_height = TransformedBbox(
-                    suptitle.get_window_extent(get_renderer(fig)),
-                    fig.transFigure.inverted()
-                ).height
-            
-            
+    nrows = get_subplotspec_list(fig.axes)[ax_idx].get_geometry()[0]
+
+    pad_inches = pad * FontProperties(
+        size=rcParams["font.size"]).get_size_in_points() / 144
+
+    non_overlapping_inches = {'top': 0, 'bottom': 0}
+    hspace = fig.subplotpars.hspace
+    for artist in nonoverlapping_extra_artists:
+        artist_bbox = TransformedBbox(
+            artist.get_window_extent(get_renderer(fig)),
+            fig.transFigure.inverted()
+        )
+        if artist_bbox.ymax < 0.5:
+            side = 'bottom'
+        else:
+            side = 'top'
+        non_overlapping_inches[side] += artist_bbox.height*h + pad_inches
+
+    for i in range(11):
+        overlapping_maxy = 0
+        overlapping_miny = 1
+        for artist in overlapping_extra_artists:
+            artist_bbox = TransformedBbox(
+                artist.get_window_extent(get_renderer(fig)),
+                fig.transFigure.inverted()
+            )
+            if artist_bbox.ymax > overlapping_maxy:
+                overlapping_maxy = artist_bbox.ymax
+            if artist_bbox.ymin < overlapping_miny:
+                overlapping_miny = artist_bbox.ymin
+                
+        if overlapping_maxy > (1 - pad_inches/h):
+            overlapping_top_adjust_inches = overlapping_maxy*h - (h - pad_inches) 
+        else:
+            overlapping_top_adjust_inches = 0
+        if overlapping_miny < pad_inches/h:
+            overlapping_bottom_adjust_inches = pad_inches - overlapping_miny*h
+        else:
+            overlapping_bottom_adjust_inches = 0
+
+        bbox = ax.get_position()        
+        current_aspect = ((bbox.x1 - bbox.x0)*w)/((bbox.y1 - bbox.y0)*h)
+        aspect_diff = abs(current_aspect - aspect)*w * fig.get_dpi()
+        if ((aspect_diff*3.14159<1) and
+           (not overlapping_top_adjust_inches) and 
+           (not overlapping_bottom_adjust_inches)):
+            return i
+
+        old_h = h
+
+        adjust_kwargs = get_tight_layout_figure(fig, fig.axes,
+            get_subplotspec_list(fig.axes), get_renderer(fig), pad=pad,
+            rect = (0, (non_overlapping_inches['bottom'] +
+                    overlapping_bottom_adjust_inches)/h, 1, 1-(non_overlapping_inches['top'] +
+                 overlapping_top_adjust_inches)/h)
+            )
+        
+        tight_top_inches = (1-adjust_kwargs['top'])*old_h
+        tight_bottom_inches = adjust_kwargs['bottom']*old_h
+
+        hspace = adjust_kwargs.get('hspace',0)
+        h = ( bbox.width*w*(nrows + hspace*(nrows-1))/aspect +
+                (adjust_kwargs['bottom'] + 1 - adjust_kwargs['top'])*old_h +
+                overlapping_top_adjust_inches + 
+                overlapping_bottom_adjust_inches +
+                non_overlapping_inches['top'] +
+                non_overlapping_inches['bottom'])
+
+        fig.set_size_inches((w, h))
+
         fig.subplots_adjust(
-            top=adjust_kwargs['top']-suptitle_height-suptitle_pad_inches/h, 
-            bottom=adjust_kwargs['bottom'],
+            top=1-(tight_top_inches)/h,
+            bottom=(tight_bottom_inches)/h,
             hspace=adjust_kwargs.get('hspace',None)
         )
-            
-        bbox = ax.get_position()
-        
-        current_aspect = ((bbox.x1 - bbox.x0)*w)/((bbox.y1 - bbox.y0)*h)
-        if abs(current_aspect - aspect)*w * fig.get_dpi()*3.14159 < 1:
-            return i
-        
-        hspace = adjust_kwargs.get('hspace',0)
-        new_h = ( bbox.width*w*(nrows + hspace*(nrows-1))/aspect
-                + (adjust_kwargs['bottom'] + 1 - adjust_kwargs['top'] 
-                    + suptitle_height)*h
-                + suptitle_pad_inches)
-        
-        fig.set_size_inches((w, new_h))
 
     warnings.warn("vertical_aspect did not converge")
     return current_aspect
