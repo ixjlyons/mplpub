@@ -7,7 +7,7 @@ from matplotlib.transforms import TransformedBbox
 rcParams = matplotlib.rcParams
 golden_ratio = 1.61803398875
 
-def wrap_suptitle(fig, suptitle_words=[], pad=1.08, **kwargs):
+def wrap_suptitle(fig, suptitle_words=[], hpad=None, **kwargs):
     """Add a wrapped suptitle so the width does not extend into the padding of
     the figure. 
     
@@ -17,9 +17,10 @@ def wrap_suptitle(fig, suptitle_words=[], pad=1.08, **kwargs):
         The matplotlib figure object to be updated
     suptitle_text : list of strings
         A list of word strings that that should not be put on separate lines
-    pad : float
-        Padding between the edge of the figure and the axis labels, as a
-        multiple of font size
+    hpad : float or None
+        Horizontal padding between the edge of the figure and the axis labels,
+        as a multiple of font size. If none, will use the figure's `subplotpars`
+        left and right values to keep the text over the plot area
     **kwargs : dict
         Additional keyword args to be passed to suptitle
         
@@ -40,14 +41,19 @@ def wrap_suptitle(fig, suptitle_words=[], pad=1.08, **kwargs):
     >>> t = "This is a really long string that I'd rather have wrapped so that"\
     >>> " it doesn't go outside of the figure, but if it's long enough it will"\
     >>> " go off the top or bottom!"
-    >>> fig.suptitle(t.split(" "))
+    >>> mplpub.wrap_suptitle(fig,t.split(" "))
 
     """
     w, h = fig.get_size_inches()
-    max_width = 1 - 2 * pad * FontProperties(
+    
+    if hpad is None:
+        max_width = 1 - max(fig.subplotpars.left, 1-fig.subplotpars.right)
+    else:
+        max_width = 1 - 2 * hpad * FontProperties(
             size=rcParams["font.size"]).get_size_in_points() / (144 * w)
     words_in_lines = [suptitle_words]
     iter_count = 0
+    
     iter_max = len(suptitle_words)
     for iter_count in range(iter_max):
         this_line = words_in_lines[-1]
@@ -264,13 +270,13 @@ def horizontal_center(fig, pad=1.08):
         adjust_kwargs = get_tight_layout_figure(fig, fig.axes,
             get_subplotspec_list(fig.axes), get_renderer(fig), pad=pad)
         
-        
-        if ((adjust_kwargs['left'] - fig.subplotpars.left)==0 and
-            (adjust_kwargs['left'] + fig.subplotpars.right)==1):
+        min_kwarg = max(1-adjust_kwargs['right'], adjust_kwargs['left'])
+        if ((min_kwarg - fig.subplotpars.left)==0 and
+            (min_kwarg + fig.subplotpars.right)==1):
             return i
         
-        fig.subplots_adjust(left=adjust_kwargs['left'], 
-                            right=1-adjust_kwargs['left'],
+        fig.subplots_adjust(left=min_kwarg, 
+                            right=1-min_kwarg,
                             wspace=adjust_kwargs.get('wspace',None))
     warnings.warn("horizontal_center did not converge")
     
